@@ -53,6 +53,7 @@
 			.style('font-size', svgTextSize + 'px')
 					
 		var board = Chessboard('myBoard',boardConfig)
+		printPositions()
 		
 		function printPositions(){		
 			text.text(JSON.stringify(board.position()).replace(/\"/g,'').replace(/\{/g,'').replace(/\}/g,'').replace(/\,/g,', '))
