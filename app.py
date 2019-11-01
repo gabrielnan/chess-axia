@@ -21,11 +21,5 @@ def post_javascript_data():
     print('OUTPUT DICT: ', piece_values)
     return jsonify(piece_values)
 
-def calculate_values(board_positions):
-    piece_values = board_positions
-    for key,_ in piece_values.items():
-        piece_values[key] = random()
-    return piece_values
-
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5001)
