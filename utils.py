@@ -1,6 +1,7 @@
 import numpy as np
 from torch.utils.data import Dataset
 import torch
+import matplotlib.pyplot as plt
 import random
 
 PIECES = ['p', 'n', 'b', 'r', 'q', 'k']
@@ -103,4 +104,13 @@ def append_to_modelname(base, append):
     if base[-3:] == '.pt':
         base = base[:-3]
     return f'{base}{append}.pt'
+
+def plot_losses(losses, savepath, title='Loss Curve'):
+    plt.figure()
+    plt.plot(losses)
+    plt.title(title)
+    plt.xlabel('Iterations')
+    plt.ylabel('Loss')
+    plt.savefig(savepath)
+
 
