@@ -3,4 +3,5 @@ torchvision
 numpy
 tqdm
 python-chess
+matplotlib
 

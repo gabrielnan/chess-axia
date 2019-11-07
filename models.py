@@ -1,3 +1,4 @@
+import torch
 from torch import nn
 from utils import INPUT_DIM, PIECES
 from torch.nn import functional as F
@@ -80,6 +81,10 @@ class Valuator(nn.Module):
 
             nn.Linear(layers[2], layers[3]),
             nn.BatchNorm1d(layers[3]),
+            nn.LeakyReLU(negative_slope),
+
+            nn.Linear(layers[3], layers[4]),
+            # nn.BatchNorm1d(layers[4]),
             # nn.Sigmoid()
         )
 
@@ -93,7 +98,7 @@ class PieceValuator(nn.Module):
         self.autoencoder = autoencoder
 
         if valuator is None:
-            valuator = self.Valuator(self.autoencoder.dim)
+            valuator = Valuator(self.autoencoder.dim)
         self.valuator = valuator
 
 
@@ -115,20 +120,19 @@ class BoardValuator(nn.Module):
             'q': PieceValuator(autoencoder) if queen is None else queen,
             'k': PieceValuator(autoencoder) if king is None else king,
         }
+        self.add_module('ae', autoencoder)
+        for piece_name, model in self.models.items():
+            self.add_module(piece_name, model)
         self.loss_fn = nn.BCELoss()
 
-    def forward(self, input):
-        outs = []
-        for color in range(2):
-            out = 0
-            for piece in PIECES:
-                for x in input[color][piece]:
-                    out = out + self.models[piece](x)
-            outs.append(out)
-        return F.sigmoid(outs[0] - outs[1])
+    def forward(self, input, mask):
+        out = 0
+        for piece in PIECES:
+            out += torch.matmul(mask[piece], self.models[piece](input[piece]))
+        return F.sigmoid(out)
 
-    def loss(self, input, label):
-        self.loss_fn(self.forward(input), label)
+    def loss(self, input, mask, label):
+        return self.loss_fn(self.forward(input, mask), label)
 
 class Comparator(nn.Module):
     def __init__(self, valuator1, valuator2):

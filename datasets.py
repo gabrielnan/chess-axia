@@ -1,5 +1,6 @@
 import numpy as np
 from torch.utils.data import Dataset
+from collections import defaultdict
 from utils import *
 
 
@@ -28,15 +29,17 @@ class BoardAndPieces(Dataset):
 
     def __getitem__(self, i):
         idxs = self.all_idxs[i]
-        label = self.all_idxs[i]
+        label = self.labels[i]
         bitboard = idxs_to_bitboard(idxs)
-        input = [{piece: [] for piece in PIECES},
-                 {piece: [] for piece in PIECES}]
+        inputs = defaultdict(lambda: [])
+        counts = [defaultdict(lambda: 0), defaultdict(lambda: 0)]
         for idx in idxs:
-            color, pos, piece = idx_to_piece(idx)
-            input[color][PIECES[piece]] = append_pos(bitboard, pos)
-
-        return input, label
+            if idx < RAW_BITBOARD_DIM:
+                color, pos, piece = idx_to_piece(idx)
+                inputs[PIECES[piece]].append(
+                    torch.Tensor(append_pos(bitboard, pos)))
+                counts[color][PIECES[piece]] += 1
+        return inputs, counts, label
 
     def __len__(self):
         return len(self.all_idxs)

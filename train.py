@@ -24,7 +24,7 @@ def main(args):
     else:
         device = torch.device('cpu')
 
-    if args.shuffle:
+    if args.shuffle or True:
         perm = np.random.permutation(n)
         idxs = idxs[perm]
         labels = labels[perm]
@@ -36,10 +36,10 @@ def main(args):
     test_labels = labels[-args.num_test:]
 
     train_loader = DataLoader(BoardAndPieces(train_idxs, train_labels),
-                              batch_size=args.batch_size,
+                              batch_size=args.batch_size, collate_fn=collate_fn,
                               shuffle=False)
     test_loader = DataLoader(BoardAndPieces(test_idxs, test_labels),
-                             batch_size=args.batch_size)
+                             batch_size=args.batch_size, collate_fn=collate_fn)
 
     ae = AutoEncoder().to(device)
     ae_file = append_to_modelname(args.ae_model, args.ae_iter)
@@ -55,15 +55,16 @@ def main(args):
     losses = []
     total_iters = 0
 
-    for epoch in range(args.init_epoch, args.epoch):
+    for epoch in range(args.init_epoch, args.epochs):
         print(f'Running epoch {epoch} / {args.epochs}\n')
-        for batch_idx, (input, label) in tqdm(enumerate(train_loader),
+        for batch_idx, (input, mask, label) in tqdm(enumerate(train_loader),
                                      total=len(train_loader)):
 
-            input = input.to(device)
-            label = label.to(device)
+            input = to(input, device)
+            mask = to(mask, device)
+            label = to(label, device)
             optimizer.zero_grad()
-            loss = model.loss(input, label)
+            loss = model.loss(input, mask, label)
             loss.backward()
 
             losses.append(loss.item())
@@ -85,9 +86,15 @@ if __name__ == '__main__':
     parser.add_argument('--boards-file', type=str, default='data/boards.npz')
     parser.add_argument('--ae-model', type=str, default='models/ae.pt')
     parser.add_argument('--ae-iter', type=int)
-    parser.add_argument('--model-savename', type=str, default='models/ae.pt')
+    parser.add_argument('--model-savename', type=str, default='models/axia.pt')
     parser.add_argument('--model-loadname', type=str)
-
-    parser.add_argument('--lr', type=float, default=0.0002)
+    parser.add_argument('--shuffle', action='store_true', default=False)
+    parser.add_argument('--num-test', type=int, default=5000)
+    parser.add_argument('--batch-size', type=int, default=64)
+    parser.add_argument('--init-epoch', type=int, default=0)
+    parser.add_argument('--epochs', type=int, default=10)
+    parser.add_argument('--lr', type=float, default=0.001)
+    parser.add_argument('--log-interval', type=int, default=100)
+    parser.add_argument('--save-interval', type=int, default=500)
 
     main(parser.parse_args())

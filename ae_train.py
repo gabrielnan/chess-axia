@@ -73,11 +73,11 @@ if __name__ == '__main__':
     parser.add_argument('--num-test', type=int, default=5000)
     parser.add_argument('--batch-size', type=int, default=128)
     parser.add_argument('--num-gpus', type=int, default=1)
-    parser.add_argument('--lr', type=float, default=0.0002)
+    parser.add_argument('--lr', type=float, default=0.01)
     parser.add_argument('--init-epoch', type=int, default=0)
+    parser.add_argument('--epochs', type=int, default=10)
     parser.add_argument('--log-interval', type=int, default=100)
     parser.add_argument('--save-interval', type=int, default=500)
-    parser.add_argument('--epochs', type=int, default=10)
     parser.add_argument('--model-savename', type=str, default='models/ae.pt')
     parser.add_argument('--model-loadname', type=str)
 
