@@ -53,10 +53,15 @@ def main(args):
         game = read_game(games)
         label = get_label(game)
         board = game.board()
-        for move in game.mainline_moves():
+        moves = list(game.mainline_moves())
+        move_idxs = set(np.random.choice(moves,
+                                        min(args.num_samples, len(moves)),
+                                        replace=False))
+        for i, move in enumerate(moves):
             board.push(move)
-            idxs.append(get_idxs(board))
-            labels.append(label)
+            if i in move_idxs:
+                idxs.append(get_idxs(board))
+                labels.append(label)
     np.savez(args.boards_file, idxs=np.array(idxs), labels=np.array(labels))
 
 
@@ -65,5 +70,6 @@ if __name__ == '__main__':
     parser.add_argument('--games-file', type=str, default='data/games.pgn')
     parser.add_argument('--num-games', type=int, default=800000)
     parser.add_argument('--boards-file', type=str, default='data/boards.npz')
+    parser.add_argument('--num-samples', type=int, default=10)
 
     main(parser.parse_args())
