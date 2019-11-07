@@ -5,6 +5,8 @@ import random
 
 PIECES = ['p', 'n', 'b', 'r', 'q', 'k']
 PIECE_IDX = {PIECES[i]: i for i in range(len(PIECES))}
+BITBOARD_DIM = 64 * 6 * 2 + 5
+INPUT_DIM = BITBOARD_DIM + 64
 
 class Bitboard(object):
 
@@ -60,6 +62,7 @@ def idxs_to_bitboard(idxs):
         bitboard[idx] = 1
     return bitboard
 
+
 def piece_to_idx(piece, pos):
     piece_idx = PIECE_IDX[piece.symbol().lower()]
 
@@ -67,6 +70,15 @@ def piece_to_idx(piece, pos):
     idx += pos * 6
     idx += piece_idx
     return idx
+
+def idx_to_piece(idx):
+    if idx >= 64 * 6 * 2:
+        raise ValueError('idx must be less than 64 * 6 * 2')
+    color = idx // (64 * 6)
+    idx %= 64 * 6
+    pos = idx // 6
+    piece = idx % 6
+    return color, pos, piece
 
 def idx_to_pos(idx):
     if idx >= 64 * 6 * 2:
@@ -86,24 +98,9 @@ def sample_piece_pos(idxs):
         random_piece_idx = np.random.choice(idxs)
     return idx_to_pos(random_piece_idx)
 
-class Boards(Dataset):
-    def __init__(self, idxs):
-        self.all_idxs = idxs
-
-    def __getitem__(self, i):
-        idxs = self.all_idxs[i]
-        bitboard = idxs_to_bitboard(idxs)
-
-        # fix bug of [-5] should consider all numbers under 64 * 6 * 2
-        random_piece_pos = sample_piece_pos(idxs)
-        bitboard_with_pos = append_pos(bitboard, random_piece_pos)
-        result = torch.Tensor(bitboard_with_pos)
-        return result
-
-    def __len__(self):
-        return len(self.all_idxs)
-
 def append_to_modelname(base, append):
+    append = '' if append is None else append
     if base[-3:] == '.pt':
         base = base[:-3]
     return f'{base}{append}.pt'
+
