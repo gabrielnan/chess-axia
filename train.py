@@ -7,7 +7,7 @@ from torch.utils.data import DataLoader
 from tqdm import tqdm
 
 from models import AutoEncoder, BoardValuator
-from utils import append_to_modelname
+from utils import *
 from datasets import BoardAndPieces
 
 def main(args):
@@ -76,6 +76,7 @@ def main(args):
                 torch.save(model.state_dict(),
                            append_to_modelname(args.model_savename,
                                                total_iters))
+                plot_losses(losses, 'vis/losses.png')
             total_iters += 1
 
 
