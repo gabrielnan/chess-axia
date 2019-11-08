@@ -11,6 +11,7 @@ from utils import *
 from datasets import BoardAndPieces
 
 def main(args):
+    torch.manual_seed(args.seed)
     print('Loading data')
     data = np.load(args.boards_file, allow_pickle=True)
     idxs = data['idxs']
@@ -23,6 +24,10 @@ def main(args):
         device = torch.device('cuda:0')
     else:
         device = torch.device('cpu')
+
+    # perm = np.random.permutation(len(idxs))
+    # idxs = idxs[perm]
+    # labels = labels[perm]
 
     train_idxs = idxs[:-args.num_test]
     test_idxs = idxs[-args.num_test:]
@@ -80,7 +85,21 @@ def main(args):
                            append_to_modelname(args.model_savename,
                                                total_iters))
                 plot_losses(losses, 'vis/losses.png')
+
+            # if total_iters % args.eval_interval == 0 and total_iters != 0:
             total_iters += 1
+        acc = eval(model, test_loader, device)
+        tqdm.write(f'TEST Accuracy: {acc:.1%}')
+
+
+def eval(model, loader, device):
+    n = len(loader)
+    input, mask, label = next(iter(loader))
+    input = to(input, device)
+    mask = to(mask, device)
+    label = to(label, device)
+    _, acc = model.loss(input, mask, label)
+    return acc
 
 
 if __name__ == '__main__':
@@ -99,6 +118,8 @@ if __name__ == '__main__':
     parser.add_argument('--lr', type=float, default=0.001)
     parser.add_argument('--log-interval', type=int, default=100)
     parser.add_argument('--save-interval', type=int, default=500)
+    parser.add_argument('--eval-interval', type=int, default=500)
     parser.add_argument('--num-gpus', type=int, default=1)
+    parser.add_argument('--seed', type=int, default=1)
 
     main(parser.parse_args())
