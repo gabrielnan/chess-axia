@@ -126,9 +126,11 @@ def collate_fn(batch):
 
 def collate_counts(counts):
     mask = torch.zeros(len(counts), sum(counts))
+    total = 0
     for i, count in enumerate(counts):
-        for j in range(count):
+        for j in range(total, total + count):
             mask[i, j] = 1
+        total += count
     return mask
 
 def to(obj, device):
