@@ -100,6 +100,7 @@ class PieceValuator(nn.Module):
         if valuator is None:
             valuator = Valuator(self.autoencoder.dim)
         self.valuator = valuator
+        self.add_module('valuator', valuator)
 
 
     def forward(self, input):
@@ -128,11 +129,14 @@ class BoardValuator(nn.Module):
     def forward(self, input, mask):
         out = 0
         for piece in PIECES:
-            out += torch.matmul(mask[piece], self.models[piece](input[piece]))
+            out = out + torch.matmul(mask[piece], self.models[piece](input[piece]))
         return F.sigmoid(out)
 
     def loss(self, input, mask, label):
-        return self.loss_fn(self.forward(input, mask), label)
+        output = self.forward(input, mask)
+        print((output == label).sum())
+        accuracy = (output == label).type(torch.float).mean()
+        return self.loss_fn(output, label), accuracy
 
 class Comparator(nn.Module):
     def __init__(self, valuator1, valuator2):

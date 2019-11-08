@@ -19,9 +19,8 @@ def get_label(game):
     if result[0] == '1':
         return 1
     elif result[0] == '0':
-        return -1
-    else:
         return 0
+    return None
 
 
 def get_bitboard(board):
@@ -46,22 +45,32 @@ def main(args):
     games = open(args.games_file)
     idxs = []
     labels = []
-    for i in trange(args.num_games):
+    net_wins = 0
+    i = 0
+    bar = tqdm(total=args.num_games)
+    imbalance = max(args.num_games // 1000, 100)
+    while i < args.num_games:
         if i % 1000 == 0:
             tqdm.write(f'# board positions: {len(idxs)}')
 
         game = read_game(games)
         label = get_label(game)
-        board = game.board()
-        moves = list(game.mainline_moves())
-        move_idxs = set(np.random.choice(moves,
-                                        min(args.num_samples, len(moves)),
-                                        replace=False))
-        for i, move in enumerate(moves):
-            board.push(move)
-            if i in move_idxs:
-                idxs.append(get_idxs(board))
-                labels.append(label)
+        if label is not None and abs(net_wins + (label * 2) - 1) < imbalance: 
+            board = game.board()
+            moves = list(game.mainline_moves())
+            num_boards = min(args.num_samples, len(moves))
+            move_idxs = set(np.random.choice(range(len(moves)), num_boards, replace=False))
+            net_wins += (label * 2 - 1) * num_boards
+            for j, move in enumerate(moves):
+                board.push(move)
+                if j in move_idxs:
+                    idxs.append(get_idxs(board))
+                    labels.append(label)
+            i += 1
+            bar.update(1)
+    print(abs(len(labels) // 2 - sum(labels)))
+    print(len(labels))
+    bar.close()
     np.savez(args.boards_file, idxs=np.array(idxs), labels=np.array(labels))
 
 

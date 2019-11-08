@@ -165,4 +165,5 @@ def to(obj, device):
 
     elif isinstance(obj, torch.Tensor):
         return obj.to(device)
+    raise ValueError(f'obj is neither tensor nor dict: {type(obj)}')
 

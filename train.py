@@ -29,11 +29,14 @@ def main(args):
         idxs = idxs[perm]
         labels = labels[perm]
 
+    print(args.num_test)
     train_idxs = idxs[:-args.num_test]
     test_idxs = idxs[-args.num_test:]
 
     train_labels = labels[:-args.num_test]
     test_labels = labels[-args.num_test:]
+    print('Win percentage: ' + str(sum(train_labels)/ len(train_labels)))
+    print('Train size: ' + str(len(train_labels)))
 
     train_loader = DataLoader(BoardAndPieces(train_idxs, train_labels),
                               batch_size=args.batch_size, collate_fn=collate_fn,
@@ -45,9 +48,10 @@ def main(args):
     ae_file = append_to_modelname(args.ae_model, args.ae_iter)
     ae.load_state_dict(torch.load(ae_file))
 
-    model = BoardValuator(ae)
+    model = BoardValuator(ae).to(device)
     if args.model_loadname:
         model.load_state_dict(torch.load(args.model_loadname))
+    print(model.modules())
 
     optimizer = optim.Adam(model.parameters(), lr=args.lr)
 
@@ -57,21 +61,22 @@ def main(args):
 
     for epoch in range(args.init_epoch, args.epochs):
         print(f'Running epoch {epoch} / {args.epochs}\n')
-        for batch_idx, (input, mask, label) in tqdm(enumerate(train_loader),
-                                     total=len(train_loader)):
+        #for batch_idx, (input, mask, label) in tqdm(enumerate(train_loader),
+        #                             total=len(train_loader)):
+        for batch_idx, (input, mask, label) in (enumerate(train_loader)):
 
             input = to(input, device)
             mask = to(mask, device)
             label = to(label, device)
             optimizer.zero_grad()
-            loss = model.loss(input, mask, label)
+            loss, acc = model.loss(input, mask, label)
             loss.backward()
 
             losses.append(loss.item())
             optimizer.step()
 
             if total_iters % args.log_interval == 0:
-                tqdm.write(f'Loss: {loss.item()}')
+                tqdm.write(f'Loss: {loss.item():.5f} \tAccuracy: {acc:.5f}')
 
             if total_iters % args.save_interval == 0:
                 torch.save(model.state_dict(),
@@ -96,5 +101,6 @@ if __name__ == '__main__':
     parser.add_argument('--lr', type=float, default=0.001)
     parser.add_argument('--log-interval', type=int, default=100)
     parser.add_argument('--save-interval', type=int, default=500)
+    parser.add_argument('--num-gpus', type=int, default=1)
 
     main(parser.parse_args())
