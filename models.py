@@ -129,13 +129,14 @@ class BoardValuator(nn.Module):
     def forward(self, input, mask):
         out = 0
         for piece in PIECES:
-            out = out + torch.matmul(mask[piece], self.models[piece](input[piece]))
+            out = out + torch.matmul(mask[piece],
+                                     self.models[piece](input[piece]))
         return F.sigmoid(out)
 
     def loss(self, input, mask, label):
         output = self.forward(input, mask)
-        print((output == label).sum())
-        accuracy = (output == label).type(torch.float).mean()
+
+        accuracy = (torch.round(output) == label).type(torch.float).mean()
         return self.loss_fn(output, label), accuracy
 
 class Comparator(nn.Module):

@@ -12,32 +12,6 @@ RAW_BITBOARD_DIM = 64 * 6 * 2
 BITBOARD_DIM = RAW_BITBOARD_DIM + 5
 INPUT_DIM = BITBOARD_DIM + 64
 
-class Bitboard(object):
-
-    def __init__(self, board):
-        self.bitboard, self.nonempty = self.get_bitboard(board)
-        self.with_position = False
-
-
-    @staticmethod
-    def get_bitboard(board):
-        nonempty = []
-        bitboard = np.zeros(BITBOARD_DIM)
-        for i in range(64):
-            piece = board.piece_at(i)
-            if piece:
-                nonempty.append(i)
-                color = int(piece.color) + 1
-                piece_idx = PIECE_IDX[piece.symbol().lower()] + i * 6
-                bitboard[piece_idx * color] = 1
-                bitboard[-5:] = [
-                    board.turn,
-                    board.has_kingside_castling_rights(True),
-                    board.has_kingside_castling_rights(False),
-                    board.has_queenside_castling_rights(True),
-                    board.has_queenside_castling_rights(False),
-                ]
-        return bitboard, nonempty
 
 def get_idxs(board):
     idxs = []
