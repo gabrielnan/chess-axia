@@ -24,23 +24,17 @@ def main(args):
     else:
         device = torch.device('cpu')
 
-    if args.shuffle or True:
-        perm = np.random.permutation(n)
-        idxs = idxs[perm]
-        labels = labels[perm]
-
-    print(args.num_test)
     train_idxs = idxs[:-args.num_test]
     test_idxs = idxs[-args.num_test:]
 
     train_labels = labels[:-args.num_test]
     test_labels = labels[-args.num_test:]
-    print('Win percentage: ' + str(sum(train_labels)/ len(train_labels)))
+    print(f'Win percentage: {sum(train_labels)/ len(train_labels):.1%}')
     print('Train size: ' + str(len(train_labels)))
 
     train_loader = DataLoader(BoardAndPieces(train_idxs, train_labels),
                               batch_size=args.batch_size, collate_fn=collate_fn,
-                              shuffle=False)
+                              shuffle=True)
     test_loader = DataLoader(BoardAndPieces(test_idxs, test_labels),
                              batch_size=args.batch_size, collate_fn=collate_fn)
 
@@ -51,7 +45,6 @@ def main(args):
     model = BoardValuator(ae).to(device)
     if args.model_loadname:
         model.load_state_dict(torch.load(args.model_loadname))
-    print(model.modules())
 
     optimizer = optim.Adam(model.parameters(), lr=args.lr)
 
@@ -76,7 +69,7 @@ def main(args):
             optimizer.step()
 
             if total_iters % args.log_interval == 0:
-                tqdm.write(f'Loss: {loss.item():.5f} \tAccuracy: {acc:.5f}')
+                tqdm.write(f'Loss: {loss.item():.5f} \tAccuracy: {acc:.1%}')
 
             if total_iters % args.save_interval == 0:
                 torch.save(model.state_dict(),

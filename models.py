@@ -1,7 +1,6 @@
 import torch
 from torch import nn
 from utils import INPUT_DIM, PIECES
-from torch.nn import functional as F
 
 
 class AutoEncoder(nn.Module):
@@ -131,26 +130,13 @@ class BoardValuator(nn.Module):
         for piece in PIECES:
             out = out + torch.matmul(mask[piece],
                                      self.models[piece](input[piece]))
-        return F.sigmoid(out)
+        return torch.sigmoid(out).view(-1)
 
     def loss(self, input, mask, label):
         output = self.forward(input, mask)
 
         accuracy = (torch.round(output) == label).type(torch.float).mean()
         return self.loss_fn(output, label), accuracy
-
-class Comparator(nn.Module):
-    def __init__(self, valuator1, valuator2):
-        super(Comparator, self).__init__()
-        self.valuator1 = valuator1
-        self.valuator2 = valuator2
-
-    def forward(self, input1, input2):
-        out1 = F.sigmoid(self.valuator1(input1))
-        out2 = F.sigmoid(self.valuator2(input2))
-        raise NotImplementedError
-
-        # todo: stack and return
 
 
 
