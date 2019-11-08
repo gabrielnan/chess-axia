@@ -46,6 +46,10 @@ def main(args):
     if args.model_loadname:
         model.load_state_dict(torch.load(args.model_loadname))
 
+    if args.ae_freeze:
+        for param in ae.parameters():
+            param.requires_grad = False
+
     optimizer = optim.Adam(model.parameters(), lr=args.lr)
 
     model.train()
@@ -87,6 +91,7 @@ if __name__ == '__main__':
     parser.add_argument('--model-savename', type=str, default='models/axia.pt')
     parser.add_argument('--model-loadname', type=str)
     parser.add_argument('--shuffle', action='store_true', default=False)
+    parser.add_argument('--ae-freeze', action='store_true', default=False)
     parser.add_argument('--num-test', type=int, default=5000)
     parser.add_argument('--batch-size', type=int, default=64)
     parser.add_argument('--init-epoch', type=int, default=0)
