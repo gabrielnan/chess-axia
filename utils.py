@@ -108,29 +108,25 @@ def collate_fn(batch):
             out = elem.new(storage)
 
         input_batch[piece] = torch.stack(inputs, 0, out=out)
-
-        masks = [(color * 2 - 1) * collate_counts([elem[1][color][piece] for
-                                                   elem in batch])
-                 for color in range(2)]
-        out = None
-        elem = masks[0]
-        if torch.utils.data.get_worker_info() is not None:
-            numel = sum([x.numel() for x in masks])
-            storage = elem.storage()._new_shared(numel)
-            out = elem.new(storage)
-        mask_batch[piece] = torch.cat(masks, 1, out=out)
+        mask_batch[piece] = collate_counts([elem[1][piece] for elem in batch])
 
     label_batch = torch.Tensor([elem[2] for elem in batch])
 
     return input_batch, mask_batch, label_batch
 
 def collate_counts(counts):
-    mask = torch.zeros(len(counts), sum(counts))
+    """
+    Collate the counts
+    :param counts: list of [color0_count, color1_count]
+    :return:
+    """
+    mask = torch.zeros(len(counts), np.array(counts).sum())
     total = 0
-    for i, count in enumerate(counts):
-        for j in range(total, total + count):
-            mask[i, j] = 1
-        total += count
+    for i, two_counts in enumerate(counts):
+        for color, count in enumerate(two_counts):
+            for j in range(total, total + count):
+                mask[i, j] = color * 2 - 1
+            total += count
     return mask
 
 def to(obj, device):

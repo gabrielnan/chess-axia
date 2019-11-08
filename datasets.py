@@ -32,13 +32,17 @@ class BoardAndPieces(Dataset):
         label = self.labels[i]
         bitboard = idxs_to_bitboard(idxs)
         inputs = defaultdict(lambda: [])
-        counts = [defaultdict(lambda: 0), defaultdict(lambda: 0)]
+        counts = defaultdict(lambda: [0, 0])
         for idx in idxs:
             if idx < RAW_BITBOARD_DIM:
                 color, pos, piece = idx_to_piece(idx)
-                inputs[PIECES[piece]].append(
-                    torch.Tensor(append_pos(bitboard, pos)))
-                counts[color][PIECES[piece]] += 1
+                input = torch.Tensor(append_pos(bitboard, pos))
+                if color == 0:
+                    inputs[PIECES[piece]].insert(0, input)
+                else:
+                    inputs[PIECES[piece]].append(input)
+                counts[PIECES[piece]][color] += 1
+
         return inputs, counts, label
 
     def __len__(self):
