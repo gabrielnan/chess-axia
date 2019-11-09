@@ -28,6 +28,7 @@ def main(args):
 
     experiment = Experiment(project_name="chess-axia")
     experiment.log_parameters(vars(args))
+    key = experiment.get_key()
 
     print(f'Number of Boards: {n}')
 
@@ -67,47 +68,54 @@ def main(args):
         for param in ae.parameters():
             param.requires_grad = False
 
+    if torch.cuda.device_count() > 1 and args.num_gpus > 1:
+        model = torch.nn.DataParallel(model)
+
     optimizer = optim.Adam(model.parameters(), lr=args.lr)
 
-    train_losses = []
-    test_losses = []
-    total_iters = 0
+    total_iters = cum_acc = cum_loss = count = 0
 
     for epoch in range(args.init_epoch, args.epochs):
         print(f'Running epoch {epoch} / {args.epochs}\n')
         #for batch_idx, (input, mask, label) in tqdm(enumerate(train_loader),
         #                             total=len(train_loader)):
-        for batch_idx, (input, mask, label) in (enumerate(train_loader)):
+        for batch_idx, (input, mask, label) in enumerate(train_loader):
 
             model.train()
+
             input = to(input, device)
             mask = to(mask, device)
             label = to(label, device)
+
             optimizer.zero_grad()
             loss, acc = model.loss(input, mask, label)
             loss.backward()
-
-            train_losses.append(loss.item())
             optimizer.step()
+
+            cum_loss += loss.item()
+            cum_acc += acc.item()
+            count += 1
 
             if total_iters % args.log_interval == 0:
                 tqdm.write(f'Loss: {loss.item():.5f} \tAccuracy: {acc:.1%}')
-                experiment.log_metric('accuracy', acc.item(), step=total_iters,
-                                      epoch=epoch)
-                experiment.log_metric('loss', loss.item(), step=total_iters,
-                                      epoch=epoch)
+                experiment.log_metric('accuracy', cum_acc / count,
+                                      step=total_iters)
+                experiment.log_metric('loss', cum_loss / count,
+                                      step=total_iters)
+                cum_acc = cum_loss = count = 0
 
             if total_iters % args.save_interval == 0:
-                torch.save(model.state_dict(),
-                           append_to_modelname(args.model_savename,
-                                               total_iters))
-                torch.save(model.state_dict(), args.model_savename)
-                plot_losses(train_losses, 'vis/losses.png')
+                path = get_modelpath(args.model_dirname, key,
+                                     args.model_savename, iter=total_iters,
+                                     epoch=epoch)
+                dirname = os.path.dirname(path)
+                if not os.path.exists(dirname):
+                    os.makedirs(dirname)
+                torch.save(model.state_dict(), path)
 
             if total_iters % args.eval_interval == 0 and total_iters != 0:
                 loss, acc = eval(model, test_loader, device)
                 tqdm.write(f'\tTEST: Loss: {loss:.5f} \tAccuracy: {acc:.1%}')
-                test_losses.append(loss)
                 experiment.log_metric('test accuracy', acc, step=total_iters,
                                       epoch=epoch)
                 experiment.log_metric('test loss', loss, step=total_iters,
@@ -120,9 +128,11 @@ if __name__ == '__main__':
     parser.add_argument('--boards-file', type=str, default='data/boards.npz')
     parser.add_argument('--ae-model', type=str, default='models/ae.pt')
     parser.add_argument('--ae-iter', type=int)
-    parser.add_argument('--model-savename', type=str, default='models/axia.pt')
+    parser.add_argument('--model-dirname', type=str, default='models')
+    parser.add_argument('--model-savename', type=str, default='axia')
     parser.add_argument('--model-loadname', type=str)
     parser.add_argument('--shuffle', action='store_true', default=False)
+    parser.add_argument('--tqdm', action='store_true', default=False)
     parser.add_argument('--ae-freeze', action='store_true', default=False)
     parser.add_argument('--num-train', type=int)
     parser.add_argument('--num-test', type=int, default=5000)

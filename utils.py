@@ -1,6 +1,7 @@
 import numpy as np
 from collections import defaultdict
 from torch.utils.data import Dataset
+import os
 import torch
 import matplotlib.pyplot as plt
 from torch._six import container_abcs, int_classes
@@ -11,6 +12,7 @@ PIECE_IDX = {PIECES[i]: i for i in range(len(PIECES))}
 RAW_BITBOARD_DIM = 64 * 6 * 2
 BITBOARD_DIM = RAW_BITBOARD_DIM + 5
 INPUT_DIM = BITBOARD_DIM + 64
+KEY_LENGTH = 4
 
 
 def get_idxs(board):
@@ -75,12 +77,6 @@ def sample_piece_pos(idxs):
     while random_piece_idx >= RAW_BITBOARD_DIM:
         random_piece_idx = np.random.choice(idxs)
     return idx_to_pos(random_piece_idx)
-
-def append_to_modelname(base, append):
-    append = '' if append is None else append
-    if base[-3:] == '.pt':
-        base = base[:-3]
-    return f'{base}{append}.pt'
 
 def plot_losses(losses, savepath, title='Loss Curve'):
     plt.figure()
@@ -152,3 +148,15 @@ def eval(model, loader, device):
         total_acc += acc.item()
     n = len(loader)
     return total_loss / n, total_acc / n
+
+def append_to_modelname(filename, *appends):
+    string = ''
+    for append in appends:
+        string += '' if append is None else '_' + str(append)
+    if filename[-3:] == '.pt':
+        filename = filename[:-3]
+    return f'{filename}{string}.pt'
+
+def get_modelpath(base, key, name, iter=None, epoch=None):
+    filename = append_to_modelname(name, epoch, iter)
+    return os.path.join(base, key[:KEY_LENGTH], filename)
