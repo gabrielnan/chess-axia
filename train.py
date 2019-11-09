@@ -1,4 +1,5 @@
 import argparse
+from comet_ml import Experiment
 
 import numpy as np
 import torch
@@ -17,6 +18,10 @@ def main(args):
     idxs = data['idxs']
     labels = data['labels']
     n = len(idxs)
+
+    experiment = Experiment('bBDHa4BcrZ74Dfbka6oumdJSE',
+                            project_name="chess-axia")
+    experiment.log_parameters(vars(args))
 
     print(f'Number of Boards: {n}')
 
@@ -58,7 +63,8 @@ def main(args):
     optimizer = optim.Adam(model.parameters(), lr=args.lr)
 
     model.train()
-    losses = []
+    train_losses = []
+    test_losses = []
     total_iters = 0
 
     for epoch in range(args.init_epoch, args.epochs):
@@ -74,7 +80,12 @@ def main(args):
             loss, acc = model.loss(input, mask, label)
             loss.backward()
 
-            losses.append(loss.item())
+            experiment.log_metric('accuracy', acc.item(), step=total_iters,
+                                  epoch=epoch)
+            experiment.log_metric('loss', loss.item(), step=total_iters,
+                                  epoch=epoch)
+
+            train_losses.append(loss.item())
             optimizer.step()
 
             if total_iters % args.log_interval == 0:
@@ -84,22 +95,18 @@ def main(args):
                 torch.save(model.state_dict(),
                            append_to_modelname(args.model_savename,
                                                total_iters))
-                plot_losses(losses, 'vis/losses.png')
+                plot_losses(train_losses, 'vis/losses.png')
 
-            # if total_iters % args.eval_interval == 0 and total_iters != 0:
+            if total_iters % args.eval_interval == 0 and total_iters != 0:
+                loss, acc = eval(model, train_loader, device)
+                tqdm.write(f'\tTEST: Loss: {loss:.5f} \tAccuracy: {acc:.1%}')
+                test_losses.append(loss)
+                experiment.log_metric('test accuracy', acc, step=total_iters,
+                                      epoch=epoch)
+                experiment.log_metric('test loss', loss, step=total_iters,
+                                      epoch=epoch)
+
             total_iters += 1
-        acc = eval(model, test_loader, device)
-        tqdm.write(f'TEST Accuracy: {acc:.1%}')
-
-
-def eval(model, loader, device):
-    n = len(loader)
-    input, mask, label = next(iter(loader))
-    input = to(input, device)
-    mask = to(mask, device)
-    label = to(label, device)
-    _, acc = model.loss(input, mask, label)
-    return acc
 
 
 if __name__ == '__main__':

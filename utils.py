@@ -139,3 +139,16 @@ def to(obj, device):
         return obj.to(device)
     raise ValueError(f'obj is neither tensor nor dict: {type(obj)}')
 
+def eval(model, loader, device):
+    model.eval()
+    total_acc = 0
+    total_loss = 0
+    for i, (input, mask, label) in enumerate(loader):
+        input = to(input, device)
+        mask = to(mask, device)
+        label = to(label, device)
+        loss, acc = model.loss(input, mask, label)
+        total_loss += loss.item()
+        total_acc += acc.item()
+    n = len(loader)
+    return total_loss / n, total_acc / n
