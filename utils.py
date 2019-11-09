@@ -103,7 +103,7 @@ def collate_fn(batch):
         if torch.utils.data.get_worker_info() is not None:
             # If we're in a background process, concatenate directly into a
             # shared memory tensor to avoid an extra copy
-            numel = sum([x[0].numel() for x in batch])
+            numel = sum([x.numel() for x in inputs])
             storage = elem.storage()._new_shared(numel)
             out = elem.new(storage)
 
