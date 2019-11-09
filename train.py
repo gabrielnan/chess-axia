@@ -13,14 +13,20 @@ from datasets import BoardAndPieces
 
 def main(args):
     torch.manual_seed(args.seed)
+    np.random.seed(args.seed)
+
     print('Loading data')
     data = np.load(args.boards_file, allow_pickle=True)
     idxs = data['idxs']
     labels = data['labels']
     n = len(idxs)
 
-    experiment = Experiment('bBDHa4BcrZ74Dfbka6oumdJSE',
-                            project_name="chess-axia")
+    if args.shuffle:
+        perm = np.random.permutation(n)
+        idxs = idxs[perm]
+        labels = labels[perm]
+
+    experiment = Experiment(project_name="chess-axia")
     experiment.log_parameters(vars(args))
 
     print(f'Number of Boards: {n}')
@@ -30,11 +36,11 @@ def main(args):
     else:
         device = torch.device('cpu')
 
-    # perm = np.random.permutation(len(idxs))
-    # idxs = idxs[perm]
-    # labels = labels[perm]
-
-    train_idxs = idxs[:-args.num_test]
+    if args.num_train is None:
+        args.num_train = n - args.num_test
+    if args.num_train + args.num_test > n:
+        raise ValueError('num-train and num-test sum to more than dataset size')
+    train_idxs = idxs[:args.num_train]
     test_idxs = idxs[-args.num_test:]
 
     train_labels = labels[:-args.num_test]
@@ -57,12 +63,12 @@ def main(args):
         model.load_state_dict(torch.load(args.model_loadname))
 
     if args.ae_freeze:
+        print('Freezing AE model')
         for param in ae.parameters():
             param.requires_grad = False
 
     optimizer = optim.Adam(model.parameters(), lr=args.lr)
 
-    model.train()
     train_losses = []
     test_losses = []
     total_iters = 0
@@ -73,6 +79,7 @@ def main(args):
         #                             total=len(train_loader)):
         for batch_idx, (input, mask, label) in (enumerate(train_loader)):
 
+            model.train()
             input = to(input, device)
             mask = to(mask, device)
             label = to(label, device)
@@ -80,32 +87,31 @@ def main(args):
             loss, acc = model.loss(input, mask, label)
             loss.backward()
 
-            experiment.log_metric('accuracy', acc.item(), step=total_iters,
-                                  epoch=epoch)
-            experiment.log_metric('loss', loss.item(), step=total_iters,
-                                  epoch=epoch)
-
             train_losses.append(loss.item())
             optimizer.step()
 
             if total_iters % args.log_interval == 0:
                 tqdm.write(f'Loss: {loss.item():.5f} \tAccuracy: {acc:.1%}')
+                experiment.log_metric('accuracy', acc.item(), step=total_iters,
+                                      epoch=epoch)
+                experiment.log_metric('loss', loss.item(), step=total_iters,
+                                      epoch=epoch)
 
             if total_iters % args.save_interval == 0:
                 torch.save(model.state_dict(),
                            append_to_modelname(args.model_savename,
                                                total_iters))
+                torch.save(model.state_dict(), args.model_savename)
                 plot_losses(train_losses, 'vis/losses.png')
 
             if total_iters % args.eval_interval == 0 and total_iters != 0:
-                loss, acc = eval(model, train_loader, device)
+                loss, acc = eval(model, test_loader, device)
                 tqdm.write(f'\tTEST: Loss: {loss:.5f} \tAccuracy: {acc:.1%}')
                 test_losses.append(loss)
                 experiment.log_metric('test accuracy', acc, step=total_iters,
                                       epoch=epoch)
                 experiment.log_metric('test loss', loss, step=total_iters,
                                       epoch=epoch)
-
             total_iters += 1
 
 
@@ -118,6 +124,7 @@ if __name__ == '__main__':
     parser.add_argument('--model-loadname', type=str)
     parser.add_argument('--shuffle', action='store_true', default=False)
     parser.add_argument('--ae-freeze', action='store_true', default=False)
+    parser.add_argument('--num-train', type=int)
     parser.add_argument('--num-test', type=int, default=5000)
     parser.add_argument('--batch-size', type=int, default=64)
     parser.add_argument('--init-epoch', type=int, default=0)

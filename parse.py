@@ -48,12 +48,12 @@ def main(args):
     net_wins = 0
     i = 0
     bar = tqdm(total=args.num_games)
-    imbalance = max(args.num_games // 1000, 100)
-    while i < args.num_games:
+    imbalance = max(args.num_games // 100, 100)
+    game = read_game(games)
+    while i < args.num_games and game is not None:
         if i % 1000 == 0:
             tqdm.write(f'# board positions: {len(idxs)}')
 
-        game = read_game(games)
         label = get_label(game)
         if label is not None and abs(net_wins + (label * 2) - 1) < imbalance: 
             board = game.board()
@@ -68,6 +68,7 @@ def main(args):
                     labels.append(label)
             i += 1
             bar.update(1)
+        game = read_game(games)
     print(abs(len(labels) // 2 - sum(labels)))
     print(len(labels))
     bar.close()
