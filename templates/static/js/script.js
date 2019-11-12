@@ -188,6 +188,11 @@ $( document ).ready(function() {
 		}
 		board.clear()
 		game.clear()
+		positionText.text("Positions:\t")
+		valueText.text("Values:\t")
+		messageText.text("Message: Board and game cleared.")
+		onChange()
+		
 	})
 	
 	//	Function that runs when start positino button is clicked
@@ -195,6 +200,7 @@ $( document ).ready(function() {
 		board.start()
 		game.reset()
 		onSnapEnd()
+		messageText.text("Message: Board and game reset to start")
 	})
 	
 	//	Function called when mouseover square
