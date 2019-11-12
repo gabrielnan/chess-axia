@@ -166,6 +166,7 @@ $( document ).ready(function() {
 		}
 	}
 	
+	//	When board positions change, update whose move is next
 	function onChange(){
 		var nextMove = game.turn()
 		var nextMoveText
@@ -175,6 +176,23 @@ $( document ).ready(function() {
 			nextMoveText = 'White'
 		nextTurnText.text('Next Turn: ' + nextMoveText)
 	}
+	
+	//	Function that runs when clear board button is clicked
+	$('#clearBoardBtn').on('click', function(){
+		oldPositions =  board.position()
+		for (s in oldPositions) {
+			clearSquare(s)
+		}
+		board.clear()
+		game.clear()
+	})
+	
+	//	Function that runs when start positino button is clicked
+	$('#startPositionBtn').on('click', function(){
+		board.start()
+		game.reset()
+		onSnapEnd()
+	})
 	
 	// Run Function
     onSnapEnd()
