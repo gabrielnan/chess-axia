@@ -10,7 +10,7 @@ app._static_folder = path.abspath("templates/static/")
 						   
 @app.route('/', methods=['GET'])
 def chess():
-    title = 'Chess'
+    title = 'CSE6242 Team 44 Chess App'
     return render_template('layouts/chess.html', title=title)
 
 @app.route('/postmethod', methods = ['POST'])
