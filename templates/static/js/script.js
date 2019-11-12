@@ -14,14 +14,14 @@ $( document ).ready(function() {
     
     //  Initialize board configuration
 	var boardConfig = {
-		pieceTheme: '/static/{piece}.png',	//	location of piece images
-		position:positions,					//	initial piece positions dictionary
-		draggable: true,					//	pieces are draggable
-		onSnapEnd: onSnapEnd,				//	Function to call after piece is snapped to a new position
-		onDrop:onDrop,						//	Function to call piece is dropped (before snap)
-		onChange:onChange,					//	Function to call when board position changes
+		pieceTheme: '/static/{piece}.png',		//	location of piece images
+		position:positions,						//	initial piece positions dictionary
+		draggable: true,						//	pieces are draggable
+		onSnapEnd: onSnapEnd,					//	Function to call after piece is snapped to a new position
+		onDrop:onDrop,							//	Function to call piece is dropped (before snap)
+		onChange:onChange,						//	Function to call when board position changes
 		onMouseoverSquare:onMouseoverSquare,	//	Function to call when mouse is hovering over square
-		sparePieces: true					//	Draws spare black and white pieces on either side of the board
+		sparePieces: true						//	Draws spare black and white pieces on either side of the board
 	}
     
     //  SVG for text below chess board
@@ -195,7 +195,7 @@ $( document ).ready(function() {
 		
 	})
 	
-	//	Function that runs when start positino button is clicked
+	//	Function that runs when start position button is clicked
 	$('#startPositionBtn').on('click', function(){
 		board.start()
 		game.reset()
