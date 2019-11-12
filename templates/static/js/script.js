@@ -1,6 +1,8 @@
 $( document ).ready(function() {
     
+	//	Board name that matches div
     var boardName = 'myBoard'
+	
     //  Hard code start configuration
 	var positions = {}
 	positions['e4'] = 'bK'
@@ -8,14 +10,13 @@ $( document ).ready(function() {
     
     //  Initialize board configuration
 	var boardConfig = {
-		pieceTheme: '/static/{piece}.png',
-		position:positions,
-		draggable: true,
-		dropOffBoard: 'trash',
-		onSnapEnd: onSnapEnd,
-		sparePieces: true
+		pieceTheme: '/static/{piece}.png',	//	location of piece images
+		position:positions,					//	initial piece positions dictionary
+		draggable: true,					//	pieces are draggable
+		dropOffBoard: 'trash',				//	What happens when piece is dragged off board
+		onSnapEnd: onSnapEnd,				//	Function to call after piece is snapped to a new position
+		sparePieces: true					//	Draws spare black and white pieces on either side of the board
 	}
-		
     
     //  SVG for text below chess board
 	var svgW = 400
@@ -25,7 +26,8 @@ $( document ).ready(function() {
 		.append('svg')
 		.attr("width", svgW)
 		.attr("height", svgH)		
-		
+	
+	//	Text object for listing positions
 	var positionText = svg.append('text')
 		.attr('x',0)
 		.attr('y', 0)
@@ -33,6 +35,7 @@ $( document ).ready(function() {
 		.attr('text-anchor', 'start')  
 		.style('font-size', svgTextSize + 'px')
     
+	//	Text object for listing values
     var valueText = svg.append('text')
 		.attr('x',0)
 		.attr('y', svgTextSize)
@@ -43,15 +46,15 @@ $( document ).ready(function() {
     //  Create chess board
 	var board = Chessboard(boardName,boardConfig)
     
+	//	Colorbar
     var colorBarWidth = 400
     var colorBarHeight = 20
+	var numBars = 100
     var color = d3.interpolateViridis
     var colorBar = d3.select('#' + boardName)
         .append('svg')
         .attr('width', colorBarWidth)
         .attr('height',colorBarHeight)
-    
-    var numBars = 100
     for (var b = 0; b < numBars; b++) {
         colorBar.append('rect')
         .attr('x', b * colorBarWidth/numBars)
@@ -62,26 +65,37 @@ $( document ).ready(function() {
         
     }
 	
+	//	Clears custom color under a single square
 	function clearSquare(square){
 		$('#myBoard .square-' + square).css('background', '')
 	}
 
     //  Function ran when piece moves
 	function onSnapEnd(source=null, target=null, piece=null){	
+		//	Get current board positions
 		var boardPositions = board.position()
+		
+		//	Update positions text object
 		positionText.text("Positions:\t" + JSON.stringify(boardPositions).replace(/\"/g,'').replace(/\{/g,'').replace(/\}/g,'').replace(/\,/g,', '))
+		
+		//	POST to python and receive values
 		$.post( "/postmethod", boardPositions, function(err, req, resp){
+			
+			//	Receive piece values dictionary
             var pieceValues = resp.responseJSON
+			
+			//	Update values text object
             valueText.text("Values:\t" + JSON.stringify(pieceValues).replace(/\"/g,'').replace(/\{/g,'').replace(/\}/g,'').replace(/\,/g,', '))
-            var squares = Object.keys(pieceValues)
-            var values = Object.values(pieceValues)
-            var num = squares.length
-            d3.select('#' + boardName).selectAll('.square').style('background-color','')
-            for (var s = 0; s < num; s++) {
-				$('#myBoard .square-' + squares[s]).css('background', color(values[s]))
+			
+			//	Loop over piece values and draw colors in appropriate squares
+            for (var s in pieceValues) {
+				$('#myBoard .square-' + s).css('background', color(pieceValues[s]))
             }
 		});
-		if (source != null) {
+		
+		//	If piece isn't added from spare pieces and source isn't null, clear source square
+		//	source is only null in manual run of function below, to initialize the values
+		if (source != null && source != 'spare') {
 			clearSquare(source)
 		}
 	}
