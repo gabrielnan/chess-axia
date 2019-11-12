@@ -12,8 +12,7 @@ $( document ).ready(function() {
 		position:positions,
 		draggable: true,
 		dropOffBoard: 'trash',
-		onSnapEnd: runWhenPieceMoves,
-        onDragStart: clearBackground,
+		onSnapEnd: onSnapEnd,
 		sparePieces: true
 	}
 		
@@ -62,21 +61,13 @@ $( document ).ready(function() {
         .style('fill',color(b/numBars))
         
     }
-    
-            
-    function clearBackground(){
-        var boardPositions = board.position()
-        var squares = Object.keys(boardPositions)
-        var num = squares.length
-        for (var s = 0; s < num; s++) {
-                test = d3.select('#' + boardName).select('.square-' + squares[s])
-                    .style('background-color','')
-            }
-        
-    }
+	
+	function clearSquare(square){
+		$('#myBoard .square-' + square).css('background', '')
+	}
 
     //  Function ran when piece moves
-	function runWhenPieceMoves(){		
+	function onSnapEnd(source=null, target=null, piece=null){	
 		var boardPositions = board.position()
 		positionText.text("Positions:\t" + JSON.stringify(boardPositions).replace(/\"/g,'').replace(/\{/g,'').replace(/\}/g,'').replace(/\,/g,', '))
 		$.post( "/postmethod", boardPositions, function(err, req, resp){
@@ -87,14 +78,15 @@ $( document ).ready(function() {
             var num = squares.length
             d3.select('#' + boardName).selectAll('.square').style('background-color','')
             for (var s = 0; s < num; s++) {
-                test = d3.select('#' + boardName).select('.square-' + squares[s])
-                    .style('background-color',color(values[s]))
+				$('#myBoard .square-' + squares[s]).css('background', color(values[s]))
             }
-            
-    });
+		});
+		if (source != null) {
+			clearSquare(source)
+		}
 	}
 	
 	// Run Function
-    runWhenPieceMoves()
+    onSnapEnd()
   
 });
