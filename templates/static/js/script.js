@@ -20,6 +20,7 @@ $( document ).ready(function() {
 		onSnapEnd: onSnapEnd,				//	Function to call after piece is snapped to a new position
 		onDrop:onDrop,						//	Function to call piece is dropped (before snap)
 		onChange:onChange,					//	Function to call when board position changes
+		onMouseoverSquare:onMouseoverSquare,	//	Function to call when mouse is hovering over square
 		sparePieces: true					//	Draws spare black and white pieces on either side of the board
 	}
     
@@ -193,6 +194,15 @@ $( document ).ready(function() {
 		game.reset()
 		onSnapEnd()
 	})
+	
+	//	Function called when mouseover square
+	//	TODO: implement bar chart highlight
+	function onMouseoverSquare(square, piece){
+		if (piece != false)
+			console.log('Mouse hovered over ' + piece + ' at ' +  square)
+		else 
+			console.log('Mouse hovered over ' + square)
+	}
 	
 	// Run Function
     onSnapEnd()
