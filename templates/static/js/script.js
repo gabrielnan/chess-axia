@@ -50,6 +50,7 @@ $( document ).ready(function() {
 		.attr('text-anchor', 'start')  
 		.style('font-size', svgTextSize + 'px')
 		
+	//	Text that indicates next move
 	var nextTurnText = svg.append('text')
 		.attr('x',0)
 		.attr('y', 2*svgVerticalSpace)
@@ -58,6 +59,7 @@ $( document ).ready(function() {
 		.style('font-size', svgTextSize + 'px')
 		.text('Next Turn: ')
 		
+	//	Text that contains message to user
 	var messageText = svg.append('text')
 		.attr('x',0)
 		.attr('y', 3*svgVerticalSpace)
