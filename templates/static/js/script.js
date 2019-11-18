@@ -93,11 +93,11 @@ $( document ).ready(function() {
     }
 	
 	//removes square highlights
-	function removeHighlights
-	{
-  		board.find('.' + squareClass)
-    		.removeClass('highlight')
-	}
+	//function removeHighlights
+	//{
+  	//	board.find('.' + squareClass)
+    //		.removeClass('highlight')
+	//}
 	
 	//	Clears custom color under a single square
 	function clearSquare(square){
