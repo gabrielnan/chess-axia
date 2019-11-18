@@ -92,6 +92,11 @@ $( document ).ready(function() {
         .style('fill',color(b/numBars))
     }
 
+	function removeHighlights (color) {
+  		$board.find('.' + squareClass)
+    		.removeClass('highlight-' + color)
+	}
+
 	//	Clears custom color under a single square
 	function clearSquare(square){
 		$('#myBoard .square-' + square).css('background', '')
