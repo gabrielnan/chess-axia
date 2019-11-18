@@ -93,7 +93,7 @@ $( document ).ready(function() {
     }
 	
 	//removes square highlights
-	function 
+	function removeHighlights
 	{
   		board.find('.' + squareClass)
     		.removeClass('highlight')
