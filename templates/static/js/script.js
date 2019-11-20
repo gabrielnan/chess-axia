@@ -1,14 +1,31 @@
 $( document ).ready(function() {
 
-	//	Board name that matches div
-    var boardName = 'myBoard'
+	//	DOM names
+    var boardName 	= 'myBoard'		//	Chessboard Div
+	var boardInfo 	= 'boardInfo'	//	Chess debug div
+	var whiteCanvas = 'whiteChart' 	//	white piece canvas
+	var blackCanvas = 'blackChart' 	//	black piece canvas
+	
+	//	Add chessboard div
+	var chessBoardWidth = 400
+	d3.select('#contentBeforeButtons')
+	.append('div').attr("id",boardName).style('width',chessBoardWidth + 'px')
+	
+	//	Add div for chess debug info
+	d3.select('#contentBeforeButtons')
+	.append('div').attr("id",boardInfo).style('width',chessBoardWidth + 'px').style('height','90px')
+	
+	//	Add Chart.js canvases
+	var barChartWidth = 400
+	d3.select('#contentAfterButtons').style('width',barChartWidth + 'px')
+	d3.select('#contentAfterButtons').append('canvas').attr("id",whiteCanvas)
+	d3.select('#contentAfterButtons').append('canvas').attr("id",blackCanvas)
 
 	//	Initialize chess js object
 	var game = new Chess()
 
 	//	Start chess as cleared
 	game.clear()
-
 
     //  Hard code start configuration
 	var positions = {}
@@ -22,16 +39,18 @@ $( document ).ready(function() {
 		onDrop:onDrop,							//	Function to call piece is dropped (before snap)
 		onChange:onChange,						//	Function to call when board position changes
 		onMouseoverSquare:onMouseoverSquare,	//	Function to call when mouse is hovering over square
-		sparePieces: true						//	Draws spare black and white pieces on either side of the board
+		sparePieces: true,						//	Draws spare black and white pieces on either side of the board
+		moveSpeed: 1,
+		snapSpeed: 1,
 	}
 
-
     //  SVG for text below chess board
-	var svgW = 400
+	var svgW = chessBoardWidth
 	var svgH = 100
 	var svgTextSize = 15
 	var svgVerticalSpace = svgTextSize+3
-	var svg = d3.select('#boardConfig')
+	
+	var svg = d3.select('#' + boardInfo)
 		.append('svg')
 		.attr("width", svgW)
 		.attr("height", svgH)
@@ -72,10 +91,13 @@ $( document ).ready(function() {
 
     //  Create chess board
 	var board = Chessboard(boardName,boardConfig)
-
+	
+	//	bar chart objects
+	var whiteChart
+	var blackChart
 
 	//	Colorbar
-    var colorBarWidth = 400
+    var colorBarWidth = chessBoardWidth
     var colorBarHeight = 20
 	var numBars = 100
     var color = d3.interpolateViridis
@@ -96,6 +118,21 @@ $( document ).ready(function() {
 	function clearSquare(square){
 		$('#myBoard .square-' + square).css('background', '')
 	}
+	
+	function clearChart(chartjsObject, chartCanvas){
+		
+		options = chartjsObject.options
+		data = chartjsObject.data
+		data.datasets[0].data = []
+		data.labels = []
+		chartjsObject.destroy()
+		
+		chartjsObject = new Chart(document.getElementById(chartCanvas).getContext('2d'), {
+			type:'bar',
+			data:data,
+			options:options
+		})
+	}
 
     //  Function ran when piece moves
 	function onSnapEnd(source=null, target=null, piece=null){
@@ -110,8 +147,8 @@ $( document ).ready(function() {
 		$.post( "/postmethod", boardPositions, function(err, req, resp){
 
 			//	Receive piece values dictionary
-            var pieceValues = resp.responseJSON
-            console.log(pieceValues)
+			var pieceValues = resp.responseJSON
+			console.log(pieceValues)
 			//	Round values for display in valueText object
 			var roundedValues = pieceValues
 			for (i in roundedValues)
@@ -119,76 +156,83 @@ $( document ).ready(function() {
 			valueText.text("Values:\t" + JSON.stringify(roundedValues).replace(/\"/g,'').replace(/\{/g,'').replace(/\}/g,'').replace(/\,/g,', '))
 
 			//	Loop over piece values and draw colors in appropriate squares
-            for (var s in pieceValues) {
+			for (var s in pieceValues) {
 				$('#myBoard .square-' + s).css('background', color(pieceValues[s]))
-            }
-      $('#whiteChart').remove();
-      $('#content').append('<canvas id="whiteChart"></canvas>')
+			}
+			
+			//	Make list of black and white pieces and values
+			pieces = boardPositions;
+			whitePieces = [];
+			whiteValues = [];
+			blackPieces = [];
+			blackValues = [];
+			for (var key in pieces) {
+				if (pieces[key].charAt(0) == 'w') {
+					whitePieces.push(pieces[key] + ' ' + key);
+					whiteValues.push(pieceValues[key]);
+				}
+				else {
+					if (pieces[key].charAt(0) == 'b') {
+						blackPieces.push(pieces[key] + ' ' + key);
+						blackValues.push(pieceValues[key]);
+					}
+				}
+			}
+			
+			//	get bar chart contexts
+			var ctW = document.getElementById(whiteCanvas).getContext('2d');
+			var ctB = document.getElementById(blackCanvas).getContext('2d');
+			
+			//	Clear chart history if exists
+			if (whiteChart != undefined)
+				clearChart(whiteChart, whiteCanvas)
+			if (blackChart != undefined) 
+				clearChart(blackChart, blackCanvas)
+			
+			//	Make white chart
+			whiteChart = new Chart(ctW, {
+				// The type of chart we want to create
+				type: 'bar',
 
-      $('#blackChart').remove();
-      $('#content').append('<canvas id="blackChart"></canvas>')
-      var ctW = document.getElementById('whiteChart').getContext('2d');
-      console.log(board.position())
+				// The data for our dataset
+				data: {
+				  labels: whitePieces,
+				  datasets: [{
+					  label: 'White Piece Values',
+					  backgroundColor: 'rgb(255, 99, 132)',
+					  borderColor: 'rgb(255, 99, 132)',
+					  data: whiteValues
+				  }]
+				},
+				
+				// Configuration options go here
+				options: {
+					animation: false
+				}
+			});
 
-      pieces = boardPositions;
-      whitePieces = [];
-      whiteValues = [];
-      for (var key in pieces) {
-        if (pieces[key].charAt(0) == 'w') {
-          whitePieces.push(pieces[key]);
-          whiteValues.push(pieceValues[key]);
-        }
-      }
-      var whiteChart = new Chart(ctW, {
-          // The type of chart we want to create
-          type: 'bar',
+			//	make black chart
+			blackChart = new Chart(ctB, {
+				// The type of chart we want to create
+				type: 'bar',
 
-          // The data for our dataset
-          data: {
-              labels: whitePieces,
-              datasets: [{
-                  label: 'White Piece Values',
-                  backgroundColor: 'rgb(255, 99, 132)',
-                  borderColor: 'rgb(255, 99, 132)',
-                  data: whiteValues
-              }]
-          },
-
-          // Configuration options go here
-          options: {}
-      });
-
-      var ctB = document.getElementById('blackChart').getContext('2d');
-      console.log(board.position())
-
-      pieces = boardPositions;
-      blackPieces = [];
-      blackValues = [];
-      for (var key in pieces) {
-        if (pieces[key].charAt(0) == 'b') {
-          blackPieces.push(pieces[key]);
-          blackValues.push(pieceValues[key]);
-        }
-      }
-      var blackChart = new Chart(ctB, {
-          // The type of chart we want to create
-          type: 'bar',
-
-          // The data for our dataset
-          data: {
-              labels: blackPieces,
-              datasets: [{
-                  label: 'Black Piece Values',
-                  backgroundColor: 'rgb(0, 0, 0)',
-                  borderColor: 'rgb(0, 0, 0)',
-                  data: blackValues
-              }]
-          },
-
-          // Configuration options go here
-          options: {}
-      });
-		});
+				// The data for our dataset
+				data: {
+				  labels: blackPieces,
+				  datasets: [{
+					  label: 'Black Piece Values',
+					  backgroundColor: 'rgb(0, 0, 0)',
+					  borderColor: 'rgb(0, 0, 0)',
+					  data: blackValues
+				  }]
+				},
+				
+				// Configuration options go here
+				options: {
+					animation: false
+				}
+			})
+		})
 
 		//	If piece isn't added from spare pieces and source isn't null, clear source square
 		//	source is only null in manual run of function below, to initialize the values
@@ -262,69 +306,17 @@ $( document ).ready(function() {
 		valueText.text("Values:\t")
 		messageText.text("Message: Board and game cleared.")
 		onChange()
-
-    // making a dummy chart with no data whenever board is cleared
-    $('#whiteChart').remove();
-    $('#content').append('<canvas id="whiteChart"></canvas>')
-
-    $('#blackChart').remove();
-    $('#content').append('<canvas id="blackChart"></canvas>')
-
-    var ctW = document.getElementById('whiteChart').getContext('2d');
-    console.log(board.position())
-
-
-    whitePieces = [];
-    whiteValues = [];
-
-    var whiteChart = new Chart(ctW, {
-        // The type of chart we want to create
-        type: 'bar',
-
-        // The data for our dataset
-        data: {
-            labels: whitePieces,
-            datasets: [{
-                label: 'White Piece Values',
-                backgroundColor: 'rgb(255, 99, 132)',
-                borderColor: 'rgb(255, 99, 132)',
-                data: whiteValues
-            }]
-        },
-
-        // Configuration options go here
-        options: {}
-    });
-
-    var ctB = document.getElementById('blackChart').getContext('2d');
-    console.log(board.position())
-
-    blackPieces = [];
-    blackValues = [];
-
-    var blackChart = new Chart(ctB, {
-        // The type of chart we want to create
-        type: 'bar',
-
-        // The data for our dataset
-        data: {
-            labels: blackPieces,
-            datasets: [{
-                label: 'Black Piece Values',
-                backgroundColor: 'rgb(0, 0, 0)',
-                borderColor: 'rgb(0, 0, 0)',
-                data: blackValues
-            }]
-        },
-
-        // Configuration options go here
-        options: {}
-    });
-
+		
+		clearChart(whiteChart, whiteCanvas)
+		clearChart(blackChart, blackCanvas)
 	})
 
 	//	Function that runs when start position button is clicked
 	$('#startPositionBtn').on('click', function(){
+		oldPositions =  board.position()
+		for (s in oldPositions) {
+			clearSquare(s)
+		}
 		board.start()
 		game.reset()
 		onSnapEnd()
@@ -342,7 +334,4 @@ $( document ).ready(function() {
 
 	// Run Function
     onSnapEnd()
-
-
-
 });
