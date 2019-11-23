@@ -42,6 +42,7 @@ def get_bitboard(board):
 
 
 def main(args):
+    np.random.seed(args.seed)
     games = open(args.games_file)
     idxs = []
     labels = []
@@ -53,6 +54,10 @@ def main(args):
     while i < args.num_games and game is not None:
         if i % 1000 == 0:
             tqdm.write(f'# board positions: {len(idxs)}')
+
+        if i % args.save_interval == 0 and i != 0:
+            np.savez(args.boards_file, idxs=np.array(idxs), labels=np.array(labels))
+
 
         label = get_label(game)
         if label is not None and abs(net_wins + (label * 2) - 1) < imbalance: 
@@ -81,5 +86,7 @@ if __name__ == '__main__':
     parser.add_argument('--num-games', type=int, default=800000)
     parser.add_argument('--boards-file', type=str, default='data/boards.npz')
     parser.add_argument('--num-samples', type=int, default=10)
+    parser.add_argument('--save-interval', type=int, default=1000)
+    parser.add_argument('--seed', type=int, default=1)
 
     main(parser.parse_args())
