@@ -109,7 +109,7 @@ class PieceValuator(nn.Module):
 
 class BoardValuator(nn.Module):
     def __init__(self, autoencoder, pawn=None, knight=None, bishop=None,
-                 rook=None, queen=None, king=None):
+                 rook=None, queen=None, king=None, sigmoid=False):
         super(BoardValuator, self).__init__()
 
         self.models = {
@@ -123,14 +123,19 @@ class BoardValuator(nn.Module):
         self.add_module('ae', autoencoder)
         for piece_name, model in self.models.items():
             self.add_module(piece_name, model)
-        self.loss_fn = nn.BCELoss()
+        self.sigmoid = sigmoid
+        if sigmoid:
+            self.loss_fn = nn.BCELoss()
+        else:
+            self.loss_fn = nn.MSELoss()
 
     def forward(self, input, mask):
         out = 0
         for piece in PIECES:
             out = out + torch.matmul(mask[piece],
                                      self.models[piece](input[piece]))
-        return torch.sigmoid(out).view(-1)
+        
+        return torch.sigmoid(out).view(-1) if self.sigmoid else out.view(-1)
 
     def loss(self, input, mask, label):
         output = self.forward(input, mask)
