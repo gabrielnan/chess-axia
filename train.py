@@ -1,8 +1,9 @@
 import argparse
-from comet_ml import Experiment
+from comet_ml import Experiment, ExistingExperiment
 
 import numpy as np
 import torch
+from torch.nn import DataParallel
 from torch import optim
 from torch.utils.data import DataLoader
 from tqdm import tqdm
@@ -18,7 +19,10 @@ def main(args):
     print('Loading data')
     data = np.load(args.boards_file, allow_pickle=True)
     idxs = data['idxs']
-    labels = data['labels']
+    labels = data['values'] 
+    mask = labels != None
+    idxs = idxs[mask]
+    labels = labels[mask]
     n = len(idxs)
 
     if args.shuffle:
@@ -26,8 +30,11 @@ def main(args):
         idxs = idxs[perm]
         labels = labels[perm]
 
-    experiment = Experiment(project_name="chess-axia")
-    experiment.log_parameters(vars(args))
+    if args.experiment is None:
+        experiment = Experiment(project_name="chess-axia")
+        experiment.log_parameters(vars(args))
+    else:
+        experiment = ExistingExperiment(previous_experiment=args.experiment)
     key = experiment.get_key()
 
     print(f'Number of Boards: {n}')
@@ -46,7 +53,7 @@ def main(args):
 
     train_labels = labels[:-args.num_test]
     test_labels = labels[-args.num_test:]
-    print(f'Win percentage: {sum(train_labels)/ len(train_labels):.1%}')
+    #print(f'Win percentage: {sum(train_labels)/ len(train_labels):.1%}')
     print('Train size: ' + str(len(train_labels)))
 
     train_loader = DataLoader(BoardAndPieces(train_idxs, train_labels),
@@ -60,6 +67,8 @@ def main(args):
     ae.load_state_dict(torch.load(ae_file))
 
     model = BoardValuator(ae).to(device)
+    loss_fn = model.loss_fn
+    model = DataParallel(model)
     if args.model_loadname:
         model.load_state_dict(torch.load(args.model_loadname))
 
@@ -73,7 +82,8 @@ def main(args):
 
     optimizer = optim.Adam(model.parameters(), lr=args.lr)
 
-    total_iters = cum_acc = cum_loss = count = 0
+    #cum_acc = cum_loss = count = 0
+    total_iters = args.init_iter
 
     for epoch in range(args.init_epoch, args.epochs):
         print(f'Running epoch {epoch} / {args.epochs}\n')
@@ -88,21 +98,24 @@ def main(args):
             label = to(label, device)
 
             optimizer.zero_grad()
-            loss, acc = model.loss(input, mask, label)
+            output = model(input, mask)
+            loss = loss_fn(output, label)
             loss.backward()
             optimizer.step()
 
             cum_loss += loss.item()
-            cum_acc += acc.item()
+            # cum_acc += acc.item()
             count += 1
 
             if total_iters % args.log_interval == 0:
-                tqdm.write(f'Loss: {loss.item():.5f} \tAccuracy: {acc:.1%}')
-                experiment.log_metric('accuracy', cum_acc / count,
-                                      step=total_iters)
+                tqdm.write(f'Epoch: {epoch}\t Iter: {total_iters:>6}\t Loss: {loss.item():.5f}')
+                # experiment.log_metric('accuracy', cum_acc / count,
+                #                       step=total_iters)
                 experiment.log_metric('loss', cum_loss / count,
                                       step=total_iters)
-                cum_acc = cum_loss = count = 0
+                experiment.log_metric('loss_', cum_loss / count,
+                                      step=total_iters)
+                #cum_acc = cum_loss = count = 0
 
             if total_iters % args.save_interval == 0:
                 path = get_modelpath(args.model_dirname, key,
@@ -114,10 +127,10 @@ def main(args):
                 torch.save(model.state_dict(), path)
 
             if total_iters % args.eval_interval == 0 and total_iters != 0:
-                loss, acc = eval(model, test_loader, device)
-                tqdm.write(f'\tTEST: Loss: {loss:.5f} \tAccuracy: {acc:.1%}')
-                experiment.log_metric('test accuracy', acc, step=total_iters,
-                                      epoch=epoch)
+                loss = eval_loss(model, test_loader, device, loss_fn)
+                tqdm.write(f'\tTEST: Loss: {loss:.5f}')
+                #experiment.log_metric('test accuracy', acc, step=total_iters,
+                #                      epoch=epoch)
                 experiment.log_metric('test loss', loss, step=total_iters,
                                       epoch=epoch)
             total_iters += 1
@@ -131,6 +144,7 @@ if __name__ == '__main__':
     parser.add_argument('--model-dirname', type=str, default='models')
     parser.add_argument('--model-savename', type=str, default='axia')
     parser.add_argument('--model-loadname', type=str)
+    parser.add_argument('--experiment', type=str)
     parser.add_argument('--shuffle', action='store_true', default=False)
     parser.add_argument('--tqdm', action='store_true', default=False)
     parser.add_argument('--ae-freeze', action='store_true', default=False)
@@ -138,6 +152,7 @@ if __name__ == '__main__':
     parser.add_argument('--num-test', type=int, default=5000)
     parser.add_argument('--batch-size', type=int, default=64)
     parser.add_argument('--init-epoch', type=int, default=0)
+    parser.add_argument('--init-iter', type=int, default=0)
     parser.add_argument('--epochs', type=int, default=10)
     parser.add_argument('--lr', type=float, default=0.001)
     parser.add_argument('--log-interval', type=int, default=100)
