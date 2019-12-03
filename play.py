@@ -108,7 +108,8 @@ class Player:
         for piece in PIECES:
             values = self.model.models[piece](in_batch[piece])
             for i, pos in enumerate(positions[piece]):
-                result[pos] = values[i].item()
+                val = values[i].item()
+                result[pos] = val / 100
         return result
 
 if __name__ == '__main__':

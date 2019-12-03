@@ -46,7 +46,7 @@ def idxs_to_bitboard(idxs):
 def pos_to_str(pos):
     num = pos // 8
     letter = pos % 8
-    return LETTERS[letter] + str(num)
+    return LETTERS[letter] + str(num + 1)
 
 def piece_to_idx(piece, pos):
     piece_idx = PIECE_IDX[piece.symbol().lower()]
