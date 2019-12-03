@@ -144,7 +144,7 @@ $( document ).ready(function() {
 		positionText.text("Positions:\t" + JSON.stringify(boardPositions).replace(/\"/g,'').replace(/\{/g,'').replace(/\}/g,'').replace(/\,/g,', '))
 
 		//	POST to python and receive values
-		$.post( "/postmethod", boardPositions, function(err, req, resp){
+		$.post( "/postmethod", board.fen(), function(err, req, resp){
 
 			//	Receive piece values dictionary
 			var pieceValues = resp.responseJSON
