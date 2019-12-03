@@ -13,6 +13,7 @@ RAW_BITBOARD_DIM = 64 * 6 * 2
 BITBOARD_DIM = RAW_BITBOARD_DIM + 5
 INPUT_DIM = BITBOARD_DIM + 64
 KEY_LENGTH = 4
+LETTERS = 'abcdefgh'
 
 
 def get_idxs(board):
@@ -42,6 +43,10 @@ def idxs_to_bitboard(idxs):
         bitboard[idx] = 1
     return bitboard
 
+def pos_to_str(pos):
+    num = pos // 8
+    letter = pos % 8
+    return LETTERS[letter] + str(num)
 
 def piece_to_idx(piece, pos):
     piece_idx = PIECE_IDX[piece.symbol().lower()]
@@ -95,13 +100,13 @@ def collate_fn(batch):
     for piece in PIECES:
         inputs = sum([elem[0][piece] for elem in batch], [])
         out = None
-        elem = inputs[0]
-        if torch.utils.data.get_worker_info() is not None:
-            # If we're in a background process, concatenate directly into a
-            # shared memory tensor to avoid an extra copy
-            numel = sum([x.numel() for x in inputs])
-            storage = elem.storage()._new_shared(numel)
-            out = elem.new(storage)
+        # elem = inputs[0]
+        # if torch.utils.data.get_worker_info() is not None:
+        #     # If we're in a background process, concatenate directly into a
+        #     # shared memory tensor to avoid an extra copy
+        #     numel = sum([x.numel() for x in inputs])
+        #     storage = elem.storage()._new_shared(numel)
+        #     out = elem.new(storage)
 
         input_batch[piece] = torch.stack(inputs, 0, out=out)
         mask_batch[piece] = collate_counts([elem[1][piece] for elem in batch])
@@ -136,7 +141,7 @@ def to(obj, device):
     raise ValueError(f'obj is neither tensor nor dict: {type(obj)}')
 
 def eval(model, loader, device):
-    model.eval()
+    model.get_inputs()
     total_acc = 0
     total_loss = 0
     for i, (input, mask, label) in enumerate(loader):
