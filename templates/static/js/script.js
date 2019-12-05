@@ -87,7 +87,7 @@ $( document ).ready(function() {
 		.attr('dominant-baseline', 'hanging')
 		.attr('text-anchor', 'start')
 		.style('font-size', svgTextSize + 'px')
-		.text('Message: ')
+		.text('Message: Press Start Position Button')
 
     //  Create chess board
 	var board = Chessboard(boardName,boardConfig)
