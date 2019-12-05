@@ -12,4 +12,4 @@ EXECUTION
 To execute the visualization, complete the following steps:
 1) Navigate to CODE/Visualization
 2) Run python app.py to serve the visualization to localhost:5001.  If another port is desired, provide the port number as an argument, like python app.py 6001
-3) In a web browser, navigate to localhost:5001.  Initialize the board with the buttom 'Start Position.'  Then, play both sides of a chess game and see how the chess piece values change.
+3) In a web browser, navigate to localhost:5001 (or specified port).  Initialize the board with the buttom 'Start Position.'  Then, play both sides of a chess game and see how the chess piece values change.
