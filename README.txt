@@ -1,15 +1,8 @@
-Chess-axia Visualization
+CSE 6242 Team 44 Final Project
 
-Flask server that serves trained_model.py piece values to javascript in browser.
+DESCRIPTION
 
-To Run:
-python3 app.py
+INSTALLATION
 
-Go to localhost:5001 in browser to use web app
-# chess-axia
-Chess Axia
+EXECUTION
 
-
-### Instructions
-* Make sure you have python 3
-* To install all python package requirements, run `pip install -r requirements.txt`
