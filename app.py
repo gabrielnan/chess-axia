@@ -22,7 +22,6 @@ def post_javascript_data():
     board_positions = list(board_positions.keys())[0]
     board = pychess.Board(board_positions)
     piece_values = player.get_values(board)
-    # piece_values = trained_model(board_positions)
     print('OUTPUT: ', piece_values)
     return jsonify(piece_values)
 
