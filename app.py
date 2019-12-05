@@ -3,7 +3,6 @@ from os import path
 import chess as pychess
 from json import loads
 from play import Player
-from trained_model import trained_model
 
 app = Flask(__name__)
 app.secret_key = 's3cr3t'
