@@ -3,7 +3,20 @@ from os import path
 import chess as pychess
 from json import loads
 from play import Player
+import sys
 
+# Parse arguments
+numArguments = len(sys.argv)
+if numArguments > 2:
+	print("\nUSAGE:")
+	print("python app.py [port]")
+	print('\nOptionally provide one argument, which is the local port to serve the visualization to.  Default is 5001.\n')
+	raise ValueError('Invalid number of arguments.  Use 0 or 1 argument.')
+elif numArguments == 2:
+	port = sys.argv[1]
+elif numArguments == 1:
+	port = 5001
+	
 app = Flask(__name__)
 app.secret_key = 's3cr3t'
 app.debug = True
@@ -27,4 +40,4 @@ def post_javascript_data():
 if __name__ == '__main__':
     model_path = 'models/axia_15_626000.pt'
     player = Player(model_path)
-    app.run(host='0.0.0.0', port=5001)
+    app.run(host='0.0.0.0', port=port)
