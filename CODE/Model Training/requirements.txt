@@ -4,4 +4,3 @@ numpy
 tqdm
 python-chess
 matplotlib
-flask
